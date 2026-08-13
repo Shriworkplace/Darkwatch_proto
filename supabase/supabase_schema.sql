@@ -1,137 +1,83 @@
--- DARKWATCH Supabase Schema Initialization
+-- DARKWATCH Database Schema for Supabase (PostgreSQL)
 
--- Enable the UUID extension
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
--- 1. Organizations Table
-CREATE TABLE public.organizations (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    domain VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL
-);
-
--- Enable RLS for Organizations
-ALTER TABLE public.organizations ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can only view their own organizations" 
-ON public.organizations FOR SELECT 
-USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can only insert their own organizations" 
-ON public.organizations FOR INSERT 
-WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can only update their own organizations" 
-ON public.organizations FOR UPDATE 
-USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can only delete their own organizations" 
-ON public.organizations FOR DELETE 
-USING (auth.uid() = user_id);
-
-
--- 2. Monitored Assets Table (Emails/Usernames linked to an Org)
-CREATE TABLE public.monitored_assets (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-    organization_id UUID REFERENCES public.organizations(id) ON DELETE CASCADE NOT NULL,
-    asset_type VARCHAR(50) NOT NULL CHECK (asset_type IN ('email', 'username', 'domain')),
-    asset_value VARCHAR(255) NOT NULL,
+-- 1. Organizations
+CREATE TABLE organizations (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    domain TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-ALTER TABLE public.monitored_assets ENABLE ROW LEVEL SECURITY;
+-- 2. Threats (Raw imported data)
+CREATE TABLE threats (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    source TEXT NOT NULL,
+    email TEXT,
+    username TEXT,
+    password TEXT,
+    ip_address TEXT,
+    breach_date TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
 
-CREATE POLICY "Users can view assets of their organizations" 
-ON public.monitored_assets FOR SELECT 
-USING (EXISTS (
-    SELECT 1 FROM public.organizations o WHERE o.id = monitored_assets.organization_id AND o.user_id = auth.uid()
-));
-
-CREATE POLICY "Users can insert assets for their organizations" 
-ON public.monitored_assets FOR INSERT 
-WITH CHECK (EXISTS (
-    SELECT 1 FROM public.organizations o WHERE o.id = monitored_assets.organization_id AND o.user_id = auth.uid()
-));
-
-CREATE POLICY "Users can delete assets of their organizations" 
-ON public.monitored_assets FOR DELETE 
-USING (EXISTS (
-    SELECT 1 FROM public.organizations o WHERE o.id = monitored_assets.organization_id AND o.user_id = auth.uid()
-));
-
-
--- 3. Incidents Table
-CREATE TABLE public.incidents (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-    organization_id UUID REFERENCES public.organizations(id) ON DELETE CASCADE NOT NULL,
-    title VARCHAR(255) NOT NULL,
-    severity VARCHAR(50) NOT NULL CHECK (severity IN ('LOW', 'MEDIUM', 'HIGH', 'CRITICAL')),
+-- 3. Incidents (Matched threats enriched with Risk & AI Analysis)
+CREATE TABLE incidents (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+    threat_id UUID REFERENCES threats(id) ON DELETE CASCADE,
+    
+    -- Risk Engine outputs
     risk_score INTEGER NOT NULL,
-    status VARCHAR(50) NOT NULL DEFAULT 'NEW' CHECK (status IN ('NEW', 'INVESTIGATING', 'CONTAINED', 'RESOLVED')),
-    exposed_data JSONB DEFAULT '{}'::jsonb,
-    risk_factors JSONB DEFAULT '[]'::jsonb,
-    ai_analysis JSONB DEFAULT '{}'::jsonb,
-    timeline JSONB DEFAULT '[]'::jsonb,
+    severity TEXT NOT NULL, -- 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL'
+    
+    -- Status
+    status TEXT DEFAULT 'NEW', -- 'NEW', 'INVESTIGATING', 'CONTAINED', 'RESOLVED'
+    
+    -- AI Analyst outputs (JSON format)
+    ai_analysis JSONB, 
+    
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-ALTER TABLE public.incidents ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can view incidents of their organizations" 
-ON public.incidents FOR SELECT 
-USING (EXISTS (
-    SELECT 1 FROM public.organizations o WHERE o.id = incidents.organization_id AND o.user_id = auth.uid()
-));
-
-CREATE POLICY "Users can update incidents of their organizations" 
-ON public.incidents FOR UPDATE 
-USING (EXISTS (
-    SELECT 1 FROM public.organizations o WHERE o.id = incidents.organization_id AND o.user_id = auth.uid()
-));
-
-
--- 4. Alerts Table
-CREATE TABLE public.alerts (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-    organization_id UUID REFERENCES public.organizations(id) ON DELETE CASCADE NOT NULL,
-    incident_id UUID REFERENCES public.incidents(id) ON DELETE CASCADE,
-    title VARCHAR(255) NOT NULL,
+-- 4. Alerts (Notifications for the UI)
+CREATE TABLE alerts (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    incident_id UUID REFERENCES incidents(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
     message TEXT NOT NULL,
     is_read BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-ALTER TABLE public.alerts ENABLE ROW LEVEL SECURITY;
+-- Row Level Security (RLS) Setup
+ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE incidents ENABLE ROW LEVEL SECURITY;
+ALTER TABLE alerts ENABLE ROW LEVEL SECURITY;
+-- Threats are global (simulated public data), so we'll leave RLS off for them, or allow read-only.
+ALTER TABLE threats ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can view alerts of their organizations" 
-ON public.alerts FOR SELECT 
-USING (EXISTS (
-    SELECT 1 FROM public.organizations o WHERE o.id = alerts.organization_id AND o.user_id = auth.uid()
-));
+-- Policies
+CREATE POLICY "Users can view their own organizations" ON organizations FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert their own organizations" ON organizations FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update their own organizations" ON organizations FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete their own organizations" ON organizations FOR DELETE USING (auth.uid() = user_id);
 
-CREATE POLICY "Users can update alerts of their organizations" 
-ON public.alerts FOR UPDATE 
-USING (EXISTS (
-    SELECT 1 FROM public.organizations o WHERE o.id = alerts.organization_id AND o.user_id = auth.uid()
-));
+CREATE POLICY "Anyone can read threats" ON threats FOR SELECT USING (true);
+CREATE POLICY "Service role can insert threats" ON threats FOR INSERT WITH CHECK (true); -- Usually restricted in prod, open for simulation
 
--- Functions to auto-update updated_at timestamps
-CREATE OR REPLACE FUNCTION update_modified_column() 
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = NOW();
-    RETURN NEW; 
-END;
-$$ language 'plpgsql';
+CREATE POLICY "Users can view incidents for their orgs" ON incidents FOR SELECT USING (
+    organization_id IN (SELECT id FROM organizations WHERE user_id = auth.uid())
+);
+CREATE POLICY "Users can update incidents for their orgs" ON incidents FOR UPDATE USING (
+    organization_id IN (SELECT id FROM organizations WHERE user_id = auth.uid())
+);
+-- Insertion of incidents is typically done by the server action
 
-CREATE TRIGGER update_org_modtime 
-BEFORE UPDATE ON public.organizations 
-FOR EACH ROW EXECUTE PROCEDURE update_modified_column();
+CREATE POLICY "Users can view their own alerts" ON alerts FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can update their own alerts" ON alerts FOR UPDATE USING (auth.uid() = user_id);
 
-CREATE TRIGGER update_inc_modtime 
-BEFORE UPDATE ON public.incidents 
-FOR EACH ROW EXECUTE PROCEDURE update_modified_column();
+-- Setup Realtime
+alter publication supabase_realtime add table incidents;
+alter publication supabase_realtime add table alerts;

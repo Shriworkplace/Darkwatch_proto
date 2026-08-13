@@ -1,14 +1,27 @@
 import { MagnifyingGlass, Funnel, DotsThree, ShieldWarning, WarningCircle, CheckCircle } from '@phosphor-icons/react/dist/ssr'
+import { createClient } from '@/utils/supabase/server'
+import { Incident } from '@/lib/types'
 
-const mockIncidents = [
-  { id: 'INC-2091', title: 'Unauthorized Access Attempt', severity: 'Critical', status: 'Investigating', time: '10 mins ago' },
-  { id: 'INC-2090', title: 'Multiple Failed Logins', severity: 'High', status: 'Open', time: '1 hour ago' },
-  { id: 'INC-2089', title: 'Unusual Data Exfiltration', severity: 'Critical', status: 'Resolved', time: '2 hours ago' },
-  { id: 'INC-2088', title: 'Suspicious API Requests', severity: 'Medium', status: 'Resolved', time: '5 hours ago' },
-  { id: 'INC-2087', title: 'Malware Signature Detected', severity: 'High', status: 'Open', time: '1 day ago' },
-]
+export default async function IncidentsPage() {
+  const supabase = await createClient()
+  
+  const { data: userData } = await supabase.auth.getUser()
+  const user = userData.user
 
-export default function IncidentsPage() {
+  // Fetch incidents related to the user's organizations
+  const { data: orgs } = await supabase.from('organizations').select('id').eq('user_id', user?.id)
+  const orgIds = orgs?.map(o => o.id) || []
+
+  let incidents: Incident[] = []
+  if (orgIds.length > 0) {
+    const { data } = await supabase
+      .from('incidents')
+      .select('*, threats(*), organizations(*)')
+      .in('organization_id', orgIds)
+      .order('created_at', { ascending: false })
+    incidents = data as unknown as Incident[] || []
+  }
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500 max-w-7xl mx-auto">
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -19,9 +32,6 @@ export default function IncidentsPage() {
         <div className="flex gap-3">
            <button className="flex items-center gap-2 text-sm font-medium bg-white border border-zinc-200 text-zinc-700 px-4 py-2 rounded-full hover:bg-zinc-50 transition-colors">
             <Funnel weight="bold" /> Filter
-          </button>
-          <button className="text-sm font-medium bg-zinc-950 text-white px-5 py-2 rounded-full hover:bg-zinc-800 transition-colors">
-            New Incident
           </button>
         </div>
       </header>
@@ -45,7 +55,7 @@ export default function IncidentsPage() {
             <thead>
               <tr className="border-b border-zinc-100 bg-zinc-50/50">
                 <th className="py-4 px-6 text-xs font-semibold text-zinc-500 uppercase tracking-wider">ID</th>
-                <th className="py-4 px-6 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Title</th>
+                <th className="py-4 px-6 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Asset / Org</th>
                 <th className="py-4 px-6 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Severity</th>
                 <th className="py-4 px-6 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Status</th>
                 <th className="py-4 px-6 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Time</th>
@@ -53,50 +63,57 @@ export default function IncidentsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
-              {mockIncidents.map((incident) => (
-                <tr key={incident.id} className="hover:bg-zinc-50/50 transition-colors group">
-                  <td className="py-4 px-6 text-sm font-medium text-zinc-900">{incident.id}</td>
-                  <td className="py-4 px-6 text-sm text-zinc-600">{incident.title}</td>
-                  <td className="py-4 px-6">
-                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${
-                      incident.severity === 'Critical' ? 'bg-red-50 text-red-700 border-red-100' :
-                      incident.severity === 'High' ? 'bg-orange-50 text-orange-700 border-orange-100' :
-                      'bg-blue-50 text-blue-700 border-blue-100'
-                    }`}>
-                      {incident.severity === 'Critical' && <ShieldWarning weight="fill" />}
-                      {incident.severity === 'High' && <WarningCircle weight="fill" />}
-                      {incident.severity}
-                    </span>
-                  </td>
-                  <td className="py-4 px-6">
-                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
-                      incident.status === 'Resolved' ? 'bg-emerald-50 text-emerald-700' :
-                      incident.status === 'Investigating' ? 'bg-amber-50 text-amber-700' :
-                      'bg-zinc-100 text-zinc-700'
-                    }`}>
-                      {incident.status === 'Resolved' && <CheckCircle weight="fill" />}
-                      {incident.status}
-                    </span>
-                  </td>
-                  <td className="py-4 px-6 text-sm text-zinc-500">{incident.time}</td>
-                  <td className="py-4 px-6 text-right">
-                    <button className="text-zinc-400 hover:text-zinc-900 transition-colors opacity-0 group-hover:opacity-100">
-                      <DotsThree size={24} weight="bold" />
-                    </button>
+              {incidents.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-12 text-center text-sm text-zinc-500">
+                    No incidents found. Run a scan from the dashboard to detect threats.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                incidents.map((incident) => (
+                  <tr key={incident.id} className="hover:bg-zinc-50/50 transition-colors group cursor-pointer">
+                    <td className="py-4 px-6 text-sm font-medium text-zinc-900">{incident.id.split('-')[0]}</td>
+                    <td className="py-4 px-6 text-sm text-zinc-600">
+                      <div>{incident.threats?.email || 'Unknown Asset'}</div>
+                      <div className="text-xs text-zinc-400">{incident.organizations?.name}</div>
+                    </td>
+                    <td className="py-4 px-6">
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${
+                        incident.severity === 'CRITICAL' ? 'bg-red-50 text-red-700 border-red-100' :
+                        incident.severity === 'HIGH' ? 'bg-orange-50 text-orange-700 border-orange-100' :
+                        'bg-blue-50 text-blue-700 border-blue-100'
+                      }`}>
+                        {incident.severity === 'CRITICAL' && <ShieldWarning weight="fill" />}
+                        {incident.severity === 'HIGH' && <WarningCircle weight="fill" />}
+                        {incident.severity}
+                      </span>
+                    </td>
+                    <td className="py-4 px-6">
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
+                        incident.status === 'RESOLVED' ? 'bg-emerald-50 text-emerald-700' :
+                        incident.status === 'INVESTIGATING' ? 'bg-amber-50 text-amber-700' :
+                        'bg-zinc-100 text-zinc-700'
+                      }`}>
+                        {incident.status === 'RESOLVED' && <CheckCircle weight="fill" />}
+                        {incident.status}
+                      </span>
+                    </td>
+                    <td className="py-4 px-6 text-sm text-zinc-500">{new Date(incident.created_at).toLocaleDateString()}</td>
+                    <td className="py-4 px-6 text-right">
+                      <button className="text-zinc-400 hover:text-zinc-900 transition-colors opacity-0 group-hover:opacity-100">
+                        <DotsThree size={24} weight="bold" />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
         
         {/* Pagination placeholder */}
         <div className="p-4 border-t border-zinc-100 flex items-center justify-between text-sm text-zinc-500 bg-zinc-50/50">
-          <span>Showing 1 to 5 of 24 incidents</span>
-          <div className="flex gap-2">
-            <button className="px-3 py-1 border border-zinc-200 rounded-md hover:bg-zinc-100 transition-colors disabled:opacity-50" disabled>Previous</button>
-            <button className="px-3 py-1 border border-zinc-200 rounded-md bg-white hover:bg-zinc-100 transition-colors">Next</button>
-          </div>
+          <span>Showing {incidents.length} incident(s)</span>
         </div>
       </div>
     </div>
