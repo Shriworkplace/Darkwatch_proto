@@ -59,7 +59,10 @@ export default async function SettingsPage() {
               )}
             </div>
 
-            <form action={addOrganization} className="p-8 space-y-6">
+            <form action={async (formData) => {
+              'use server';
+              await addOrganization(formData);
+            }} className="p-8 space-y-6">
               <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Add New Organization</h3>
               <div className="flex flex-col gap-4 sm:flex-row">
                 <div className="flex-1 flex flex-col gap-2">
