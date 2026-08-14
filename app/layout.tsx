@@ -1,23 +1,35 @@
+import type { Metadata } from 'next'
 import { Outfit } from 'next/font/google'
-import "./globals.css"
+import './globals.css'
+import { ThemeProvider } from '@/components/ThemeProvider'
 
-const outfit = Outfit({ subsets: ['latin'] })
+const outfit = Outfit({
+  subsets: ['latin'],
+  display: 'swap',
+})
 
-export const metadata = {
-  title: "DARKWATCH | SOC Analyst Platform",
-  description: "Next-generation security operations center platform.",
-};
+export const metadata: Metadata = {
+  title: 'DARKWATCH | Cyber Intelligence',
+  description: 'AI-Powered Data Breach Intelligence & Real-Time Alert System',
+}
 
 export default function RootLayout({
   children,
-}: {
-  children: React.ReactNode;
-}) {
+}: Readonly<{
+  children: React.ReactNode
+}>) {
   return (
-    <html lang="en" className={outfit.className}>
-      <body className="bg-zinc-50 text-zinc-950 antialiased min-h-[100dvh] flex flex-col">
-        {children}
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${outfit.className} bg-zinc-50 dark:bg-zinc-950 text-zinc-950 dark:text-zinc-50 antialiased min-h-screen flex flex-col selection:bg-zinc-200 dark:selection:bg-zinc-800`}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          {children}
+        </ThemeProvider>
       </body>
     </html>
-  );
+  )
 }

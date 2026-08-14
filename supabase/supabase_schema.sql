@@ -9,6 +9,16 @@ CREATE TABLE organizations (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- 1b. Team Members (RBAC)
+CREATE TABLE team_members (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    role TEXT NOT NULL DEFAULT 'VIEWER', -- 'ADMIN', 'ANALYST', 'VIEWER'
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(organization_id, user_id)
+);
+
 -- 2. Threats (Raw imported data)
 CREATE TABLE threats (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -58,8 +68,12 @@ ALTER TABLE alerts ENABLE ROW LEVEL SECURITY;
 -- Threats are global (simulated public data), so we'll leave RLS off for them, or allow read-only.
 ALTER TABLE threats ENABLE ROW LEVEL SECURITY;
 
+ALTER TABLE team_members ENABLE ROW LEVEL SECURITY;
+
 -- Policies
-CREATE POLICY "Users can view their own organizations" ON organizations FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can view their orgs via team_members" ON organizations FOR SELECT USING (
+    id IN (SELECT organization_id FROM team_members WHERE user_id = auth.uid())
+);
 CREATE POLICY "Users can insert their own organizations" ON organizations FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can update their own organizations" ON organizations FOR UPDATE USING (auth.uid() = user_id);
 CREATE POLICY "Users can delete their own organizations" ON organizations FOR DELETE USING (auth.uid() = user_id);
@@ -67,11 +81,14 @@ CREATE POLICY "Users can delete their own organizations" ON organizations FOR DE
 CREATE POLICY "Anyone can read threats" ON threats FOR SELECT USING (true);
 CREATE POLICY "Service role can insert threats" ON threats FOR INSERT WITH CHECK (true); -- Usually restricted in prod, open for simulation
 
-CREATE POLICY "Users can view incidents for their orgs" ON incidents FOR SELECT USING (
-    organization_id IN (SELECT id FROM organizations WHERE user_id = auth.uid())
+CREATE POLICY "Team members can view incidents" ON incidents FOR SELECT USING (
+    organization_id IN (SELECT organization_id FROM team_members WHERE user_id = auth.uid())
 );
-CREATE POLICY "Users can update incidents for their orgs" ON incidents FOR UPDATE USING (
-    organization_id IN (SELECT id FROM organizations WHERE user_id = auth.uid())
+CREATE POLICY "Admins and Analysts can update incidents" ON incidents FOR UPDATE USING (
+    organization_id IN (
+        SELECT organization_id FROM team_members 
+        WHERE user_id = auth.uid() AND role IN ('ADMIN', 'ANALYST')
+    )
 );
 -- Insertion of incidents is typically done by the server action
 
@@ -81,3 +98,14 @@ CREATE POLICY "Users can update their own alerts" ON alerts FOR UPDATE USING (au
 -- Setup Realtime
 alter publication supabase_realtime add table incidents;
 alter publication supabase_realtime add table alerts;
+
+-- Team Members Policies
+CREATE POLICY "Users can view team members of their orgs" ON team_members FOR SELECT USING (
+    organization_id IN (SELECT organization_id FROM team_members WHERE user_id = auth.uid())
+);
+CREATE POLICY "Only admins can insert team members" ON team_members FOR INSERT WITH CHECK (
+    organization_id IN (SELECT organization_id FROM team_members WHERE user_id = auth.uid() AND role = 'ADMIN')
+);
+CREATE POLICY "Only admins can delete team members" ON team_members FOR DELETE USING (
+    organization_id IN (SELECT organization_id FROM team_members WHERE user_id = auth.uid() AND role = 'ADMIN')
+);

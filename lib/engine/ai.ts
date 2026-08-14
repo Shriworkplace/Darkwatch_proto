@@ -1,8 +1,8 @@
 import { Threat, Organization, AIAnalysis } from '../types'
-import { GoogleGenerativeAI } from '@google/genai'
+import { GoogleGenAI } from '@google/genai'
 
 // Initialize only if key exists to prevent crashing during build or missing env vars
-const ai = process.env.GEMINI_API_KEY ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY) : null
+const ai = process.env.GEMINI_API_KEY ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY }) : null
 
 /**
  * Uses Gemini API to analyze a threat and return structured recommendations.
@@ -39,10 +39,13 @@ export async function analyzeIncident(threat: Threat, org: Organization): Promis
         "recommendedActions": ["action 1", "action 2", "action 3"]
       }
     `
-    // using the gemini-pro model
-    const model = ai.getGenerativeModel({ model: "gemini-pro" })
-    const result = await model.generateContent(prompt)
-    const responseText = result.response.text()
+    // using the recommended model
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt
+    })
+    
+    const responseText = response.text || ''
     
     // Clean up potential markdown from the response
     const cleanedText = responseText.replace(/```json/g, '').replace(/```/g, '').trim()

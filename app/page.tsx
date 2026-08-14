@@ -11,22 +11,22 @@ export default async function Home() {
       <div className="w-full flex flex-col items-center text-center space-y-12">
         {/* Navigation / Header */}
         <div className="absolute top-0 w-full p-6 flex justify-between items-center max-w-7xl mx-auto">
-          <div className="flex items-center gap-2 text-zinc-950 font-semibold tracking-tight text-lg">
-            <ShieldCheck weight="fill" className="text-zinc-900 w-7 h-7" />
+          <div className="flex items-center gap-2 text-zinc-950 dark:text-zinc-50 font-semibold tracking-tight text-lg">
+            <ShieldCheck weight="fill" className="text-zinc-900 dark:text-zinc-100 w-7 h-7" />
             DARKWATCH
           </div>
           <div className="flex gap-4">
             {user ? (
               <Link
                 href="/dashboard"
-                className="text-sm font-medium px-4 py-2 rounded-full bg-zinc-900 text-white hover:bg-zinc-800 transition-colors"
+                className="text-sm font-medium px-4 py-2 rounded-full bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors"
               >
                 Dashboard
               </Link>
             ) : (
               <Link
                 href="/login"
-                className="text-sm font-medium px-4 py-2 rounded-full bg-zinc-900 text-white hover:bg-zinc-800 transition-colors"
+                className="text-sm font-medium px-4 py-2 rounded-full bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors"
               >
                 Sign In
               </Link>
@@ -36,10 +36,10 @@ export default async function Home() {
 
         {/* Hero Section */}
         <div className="flex flex-col items-center max-w-4xl space-y-8 pt-20">
-          <h1 className="text-5xl md:text-7xl font-medium tracking-tight text-zinc-950 leading-[1.1] max-w-5xl">
+          <h1 className="text-5xl md:text-7xl font-medium tracking-tight text-zinc-950 dark:text-zinc-50 leading-[1.1] max-w-5xl">
             Clarity and control for modern security teams.
           </h1>
-          <p className="text-lg md:text-xl text-zinc-500 max-w-2xl leading-relaxed">
+          <p className="text-lg md:text-xl text-zinc-500 dark:text-zinc-400 max-w-2xl leading-relaxed">
             Darkwatch provides a clean, unified view of your organization's threat landscape. Designed for speed, precision, and focus.
           </p>
           
@@ -47,14 +47,14 @@ export default async function Home() {
             {user ? (
               <Link
                 href="/dashboard"
-                className="flex items-center gap-2 bg-zinc-900 text-white px-8 py-4 rounded-full font-medium hover:bg-zinc-800 transition-transform active:scale-95"
+                className="flex items-center gap-2 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 px-8 py-4 rounded-full font-medium hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-transform active:scale-95"
               >
                 Enter Workspace <ArrowRight weight="bold" />
               </Link>
             ) : (
               <Link
                 href="/register"
-                className="flex items-center gap-2 bg-zinc-900 text-white px-8 py-4 rounded-full font-medium hover:bg-zinc-800 transition-transform active:scale-95"
+                className="flex items-center gap-2 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 px-8 py-4 rounded-full font-medium hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-transform active:scale-95"
               >
                 Register Analyst <ArrowRight weight="bold" />
               </Link>
@@ -62,7 +62,7 @@ export default async function Home() {
             {!user && (
               <Link
                 href="/login"
-                className="flex items-center gap-2 bg-white text-zinc-900 border border-zinc-200 px-8 py-4 rounded-full font-medium hover:bg-zinc-50 transition-colors"
+                className="flex items-center gap-2 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-800 px-8 py-4 rounded-full font-medium hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
               >
                 Analyst Login
               </Link>
@@ -71,9 +71,9 @@ export default async function Home() {
         </div>
 
         {/* Minimal Asset / Feature placeholder */}
-        <div className="w-full max-w-5xl aspect-video bg-white border border-zinc-200 rounded-[2rem] shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] mt-16 p-8 flex flex-col items-center justify-center">
-           <ShieldCheck weight="duotone" className="w-24 h-24 text-zinc-200 mb-4" />
-           <p className="text-zinc-400 font-medium tracking-wide text-sm uppercase">Platform Interface Preview</p>
+        <div className="w-full max-w-5xl aspect-video bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800/50 rounded-[2rem] shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] mt-16 p-8 flex flex-col items-center justify-center">
+           <ShieldCheck weight="duotone" className="w-24 h-24 text-zinc-200 dark:text-zinc-800 mb-4" />
+           <p className="text-zinc-400 dark:text-zinc-600 font-medium tracking-wide text-sm uppercase">Platform Interface Preview</p>
         </div>
       </div>
     </main>

@@ -1,5 +1,6 @@
-import { Sidebar } from '@/components/Sidebar'
-import { Header } from '@/components/Header'
+import Sidebar from '@/components/Sidebar'
+import Header from '@/components/Header'
+import { LiveUpdatesProvider } from '@/components/LiveUpdatesProvider'
 
 export default function DashboardLayout({
   children,
@@ -7,13 +8,15 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   return (
-    <div className="flex min-h-[100dvh] bg-zinc-50">
+    <div className="flex h-screen overflow-hidden bg-zinc-50 dark:bg-zinc-950">
       <Sidebar />
-      <div className="flex-1 flex flex-col h-[100dvh]">
+      <div className="flex-1 flex flex-col h-full relative overflow-y-auto">
         <Header />
-        <main className="flex-1 overflow-auto p-8">
-          {children}
-        </main>
+        <LiveUpdatesProvider>
+          <main className="flex-1 p-8">
+            {children}
+          </main>
+        </LiveUpdatesProvider>
       </div>
     </div>
   )

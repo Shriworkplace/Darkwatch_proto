@@ -20,6 +20,19 @@ DARKWATCH monitors simulated threat intelligence feeds, detects leaked organizat
 - **Incident Lifecycle** — NEW → INVESTIGATING → CONTAINED → RESOLVED with timeline.
 - **Modern SOC Dashboard** — "Art Gallery" aesthetic bento grid, incident tables, and threat feeds using Next.js App Router.
 
+### 4. Non-Functional Requirements
+- **Performance:** App Router + SSR for < 1s initial load times.
+- **Security:** RLS to ensure zero cross-tenant data leakage. Secure Cron via API secrets.
+- **Scalability:** Serverless ingestion endpoints capable of massive simultaneous inserts without blocking main DB reads.
+
+## Under Development (Future Integrations)
+The following features are slated for future releases and require third-party API configurations:
+1. **Real Threat Intelligence Feed Integrations:**
+   - Integration with HaveIBeenPwned API for domain breach monitoring.
+   - Integration with AlienVault OTX / ThreatFox for live IOC (Indicators of Compromise) streaming.
+2. **Dark Web Monitoring:**
+   - Automated polling of specialized paid APIs (e.g., DeHashed, Searchlight) or custom Tor scrapers to monitor specific client assets on the deep/dark web.
+
 ---
 
 ## 🧱 Tech Stack
