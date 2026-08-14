@@ -1,5 +1,6 @@
 # 🛡️ DARKWATCH
-
+> ⚠️ **Prototype notice:** DARKWATCH is currently a prototype and is **not production ready**.
+> ⚠️ **Ethical scope:** This project consumes ONLY simulated datasets. It does NOT scrape the dark web or perform any real hacking.
 **AI-Powered Data Breach Intelligence & Real-Time Alert System**
 
 DARKWATCH monitors simulated threat intelligence feeds, detects leaked organizational credentials or sensitive data, calculates risk, generates AI-powered incident analysis, and alerts security analysts in real time.
