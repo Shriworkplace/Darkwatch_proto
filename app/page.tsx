@@ -70,10 +70,13 @@ export default async function Home() {
           </div>
         </div>
 
-        {/* Minimal Asset / Feature placeholder */}
-        <div className="w-full max-w-5xl aspect-video bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800/50 rounded-[2rem] shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] mt-16 p-8 flex flex-col items-center justify-center">
-           <ShieldCheck weight="duotone" className="w-24 h-24 text-zinc-200 dark:text-zinc-800 mb-4" />
-           <p className="text-zinc-400 dark:text-zinc-600 font-medium tracking-wide text-sm uppercase">Platform Interface Preview</p>
+        {/* Dashboard Preview Image */}
+        <div className="w-full max-w-5xl aspect-video rounded-[2rem] shadow-[0_20px_40px_-15px_rgba(0,0,0,0.2)] mt-16 overflow-hidden border border-zinc-200 dark:border-zinc-800">
+           <img 
+             src="/preview.png" 
+             alt="Darkwatch Dashboard Preview" 
+             className="w-full h-full object-cover"
+           />
         </div>
       </div>
     </main>
